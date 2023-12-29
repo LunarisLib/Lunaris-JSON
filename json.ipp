@@ -654,6 +654,8 @@ namespace Lunaris {
                 f.put('}');
             }
             break;
+            default: // nothing, but some compilers don't like missing stuff.
+            break;
             }
 
             if (ref->next) {
@@ -751,9 +753,7 @@ namespace Lunaris {
         case type::STRING:
             __skip_string_auto_escape(str_beg, len);
             break;
-        case type::ARRAY:
-            return "";
-        case type::OBJECT:
+        default:
             return "";
         }
 
@@ -790,9 +790,7 @@ namespace Lunaris {
         case type::STRING:
             __skip_string_auto_escape(str_beg, len);
             break;
-        case type::ARRAY:
-            return "";
-        case type::OBJECT:
+        default:
             return "";
         }
 
