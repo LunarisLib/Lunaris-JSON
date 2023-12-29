@@ -536,7 +536,7 @@ namespace Lunaris {
         ++n->off; // skip ]
     }
 
-    size_t JSON::print_any(ref* ref, prt& f)
+    inline size_t JSON::print_any(ref* ref, prt& f)
     {
         if (!ref) return 0;
 
