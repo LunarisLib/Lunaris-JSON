@@ -687,6 +687,10 @@ namespace Lunaris {
     {
         _free();
     }
+    inline JSON::type JSON::get_type() const
+    {
+        return m_ref ? m_ref->type : JSON::type::INVALID;
+    }
 
     inline int64_t JSON::get_int() const
     {

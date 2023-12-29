@@ -26,9 +26,9 @@ namespace Lunaris {
 	class JSON {
 	public:
 		typedef void(*printer_char_function)(char);
-	private:
+
 		enum class type : uint16_t {
-			INVALID,	// got bad, no child
+			INVALID,	// got bad or null
 			BOOL,		// true or false, no child
 			NIL,		// null, no child
 			NUMBER,		// double or int, no child
@@ -36,10 +36,9 @@ namespace Lunaris {
 			ARRAY,		// array of refs. They are at *child and child has next...
 			OBJECT		// object with stuff. They are at *child and child may have next or child...
 		};
-
+	private:
 		struct ref {
 			ref* next = nullptr; // alloc here
-			//ref* prev = nullptr; // reference, do not dealloc using this
 			/* An array or object item will have a child pointer pointing to a chain of the items in the array/object. */
 			ref* child = nullptr; // alloc here
 			type type = type::INVALID;
@@ -69,7 +68,6 @@ namespace Lunaris {
 			size_t lining; // 0 == no break no line, 1 = break, 1 space per depth, 2 = break, 2 ...
 			size_t curr_depth = 0;
 			char space_char = ' '; // can be \t if you need
-			//size_t printed_counter = 0; // returned later
 
 			char* target = nullptr;
 			size_t target_off = 0;
@@ -101,6 +99,8 @@ namespace Lunaris {
 		void operator=(JSON&&) = delete;
 		JSON(JSON&&);
 		~JSON();
+
+		type get_type() const;
 
 		int64_t get_int() const;
 		uint64_t get_uint() const;
