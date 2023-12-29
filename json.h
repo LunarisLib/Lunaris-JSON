@@ -41,7 +41,7 @@ namespace Lunaris {
 			ref* next = nullptr; // alloc here
 			/* An array or object item will have a child pointer pointing to a chain of the items in the array/object. */
 			ref* child = nullptr; // alloc here
-			type type = type::INVALID;
+			type self_type = type::INVALID;
 
 			const char* key_ptr = nullptr;
 			const char* val_ptr = nullptr;

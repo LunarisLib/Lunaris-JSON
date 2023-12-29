@@ -27,7 +27,7 @@
 struct ref {
   ref* next; // if this is an array or sequence of objects in an object, this is the next one
   ref* child; // if this is a key -> object or key -> array, the object/array is here
-  type type; // its type, like NUMBER, STRING, OBJECT...
+  type self_type; // its type, like NUMBER, STRING, OBJECT...
 
   const char* key_ptr; // start of key, if it makes sense, pointer from parse
   const char* val_ptr; // start of value, if it is a kind that has one, pointer from parse

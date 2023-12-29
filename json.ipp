@@ -425,12 +425,12 @@ namespace Lunaris {
         switch (n->curr_off()[0]) {
         case '-': case '+':
         case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
-            r->type = type::NUMBER;
+            r->self_type = type::NUMBER;
             r->val_ptr = n->curr_off();
             n->skip_number();
             break;
         case '\"':
-            r->type = type::STRING;
+            r->self_type = type::STRING;
             ++n->off;
             r->val_ptr = n->curr_off();
             n->skip_string_auto_escape();
@@ -438,14 +438,14 @@ namespace Lunaris {
             break;
         case '{':
         {
-            r->type = type::OBJECT;
+            r->self_type = type::OBJECT;
             parse_object(r, n);
             n->skip_next_spaces_auto();
         }
             break;
         case '[':
         {
-            r->type = type::ARRAY;
+            r->self_type = type::ARRAY;
             //auto* new_obj = r->make_child();
             parse_array(r, n);
             n->skip_next_spaces_auto();
@@ -454,19 +454,19 @@ namespace Lunaris {
         default:
             if (strncmp(n->curr_off(), "true", 4) == 0)
             {
-                r->type = type::BOOL;
+                r->self_type = type::BOOL;
                 r->val_ptr = n->curr_off();
                 n->off += 4;
             }
             else if (strncmp(n->curr_off(), "false", 5) == 0)
             {
-                r->type = type::BOOL;
+                r->self_type = type::BOOL;
                 r->val_ptr = n->curr_off();
                 n->off += 5;
             }
             else if (strncmp(n->curr_off(), "null", 4) == 0)
             {
-                r->type = type::NIL;
+                r->self_type = type::NIL;
                 r->val_ptr = n->curr_off();
                 n->off += 4;
             }
@@ -584,7 +584,7 @@ namespace Lunaris {
 
         size_t offsetter = 0;
         while (1) {
-            switch (ref->type) {
+            switch (ref->self_type) {
             case type::BOOL:
             {
                 spaceline();
@@ -689,7 +689,7 @@ namespace Lunaris {
     }
     inline JSON::type JSON::get_type() const
     {
-        return m_ref ? m_ref->type : JSON::type::INVALID;
+        return m_ref ? m_ref->self_type : JSON::type::INVALID;
     }
 
     inline int64_t JSON::get_int() const
@@ -740,7 +740,7 @@ namespace Lunaris {
         if (m_charptr_clean && strncmp(m_charptr_clean, str_beg, strlen(m_charptr_clean)) == 0) return m_charptr_clean;
 
         size_t len = 0;
-        switch (m_ref->type) {
+        switch (m_ref->self_type) {
         case type::BOOL:
             return get_bool() ? "true" : "false";
         case type::NIL:
@@ -779,7 +779,7 @@ namespace Lunaris {
         if (m_charptr_clean && strncmp(m_charptr_clean, str_beg, strlen(m_charptr_clean)) == 0) return m_charptr_clean;
 
         size_t len = 0;
-        switch (m_ref->type) {
+        switch (m_ref->self_type) {
         case type::BOOL:
             return get_bool() ? "true" : "false";
         case type::NIL:
@@ -820,7 +820,7 @@ namespace Lunaris {
 
     inline JSON JSON::operator[](const char* key) const
     {
-        if (!m_ref || m_ref->type != type::OBJECT) return JSON((ref*)nullptr);
+        if (!m_ref || m_ref->self_type != type::OBJECT) return JSON((ref*)nullptr);
 
         for (ref* it = m_ref->child; it != nullptr; it = it->next)
         {
@@ -837,7 +837,7 @@ namespace Lunaris {
 
     inline JSON JSON::operator[](size_t idx) const
     {
-        if (!m_ref || m_ref->type != type::ARRAY) return JSON((ref*)nullptr);
+        if (!m_ref || m_ref->self_type != type::ARRAY) return JSON((ref*)nullptr);
 
         for (ref* it = m_ref->child; it != nullptr; it = it->next)
         {
