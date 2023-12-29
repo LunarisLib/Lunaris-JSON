@@ -27,14 +27,15 @@
 struct ref {
   ref* next; // if this is an array or sequence of objects in an object, this is the next one
   ref* child; // if this is a key -> object or key -> array, the object/array is here
-  type self_type; // its type, like NUMBER, STRING, OBJECT...
 
-  const char* key_ptr; // start of key, if it makes sense, pointer from parse
-  const char* val_ptr; // start of value, if it is a kind that has one, pointer from parse
+  const char* key_ptr; // start of key or value, pointer from parse
+  
+  type self_type; // its type, like NUMBER, STRING, OBJECT...
+  bool key_is_val; // used when it is in an array.
 };
 ```
 
-*4 pointers and one 16 bit integer enum. Good enough? I think so. Better than saving an int, a double, something else and a copy of a string.*
+*3 pointers, one 16 bit integer enum and a bool. Good enough? I think so. Better than saving an int, a double, something else and a copy of a string.*
 
 *I'm doing this reference thing quick so you can use it too, but maybe in the future I can make this readme better.*
 

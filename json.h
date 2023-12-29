@@ -41,15 +41,18 @@ namespace Lunaris {
 			ref* next = nullptr; // alloc here
 			/* An array or object item will have a child pointer pointing to a chain of the items in the array/object. */
 			ref* child = nullptr; // alloc here
-			type self_type = type::INVALID;
 
 			const char* key_ptr = nullptr;
-			const char* val_ptr = nullptr;
+
+			type self_type = type::INVALID;
+			bool key_is_val = false;
 
 			ref* make_child();
 			ref* make_next();
 
 			void free_next_and_child();
+
+			const char* get_val_ptr() const; // run key_ptr + ...: * if bool, nil, number or string only
 		};
 
 		struct nav {

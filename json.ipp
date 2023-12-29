@@ -368,6 +368,32 @@ namespace Lunaris {
         }
     }
 
+    inline const char* JSON::ref::get_val_ptr() const
+    {
+        if (key_is_val) return key_ptr; // array objects don't have a key, so the key will be used as the value
+        if (self_type == type::NIL) return "null"; // quick
+
+        if (!key_ptr) return nullptr;
+        const char* ref = key_ptr;
+        size_t off = 0;
+
+        // Skip key
+        __skip_string_auto_escape(ref, off); // its string val
+        ++off; // must be \"
+        __skip_next_spaces_auto(ref, off); // advance to :
+        if (ref[off] != ':') return nullptr; // then :
+        ++off; // skip :
+        __skip_next_spaces_auto(ref, off); // advance to val
+
+
+        if (self_type == type::STRING) {
+            if (ref[off] != '\"') return nullptr; // should start work "
+            ++off;
+        }
+
+        return ref + off;
+    }
+
     inline const char* JSON::nav::curr_off() const
     {
         return buf + off;
@@ -426,13 +452,13 @@ namespace Lunaris {
         case '-': case '+':
         case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
             r->self_type = type::NUMBER;
-            r->val_ptr = n->curr_off();
+            if (r->key_is_val) r->key_ptr = n->curr_off();
             n->skip_number();
             break;
         case '\"':
             r->self_type = type::STRING;
             ++n->off;
-            r->val_ptr = n->curr_off();
+            if (r->key_is_val) r->key_ptr = n->curr_off();
             n->skip_string_auto_escape();
             ++n->off;
             break;
@@ -446,7 +472,6 @@ namespace Lunaris {
         case '[':
         {
             r->self_type = type::ARRAY;
-            //auto* new_obj = r->make_child();
             parse_array(r, n);
             n->skip_next_spaces_auto();
         }
@@ -455,19 +480,19 @@ namespace Lunaris {
             if (strncmp(n->curr_off(), "true", 4) == 0)
             {
                 r->self_type = type::BOOL;
-                r->val_ptr = n->curr_off();
+                if (r->key_is_val) r->key_ptr = n->curr_off();
                 n->off += 4;
             }
             else if (strncmp(n->curr_off(), "false", 5) == 0)
             {
                 r->self_type = type::BOOL;
-                r->val_ptr = n->curr_off();
+                if (r->key_is_val) r->key_ptr = n->curr_off();
                 n->off += 5;
             }
             else if (strncmp(n->curr_off(), "null", 4) == 0)
             {
                 r->self_type = type::NIL;
-                r->val_ptr = n->curr_off();
+                if (r->key_is_val) r->key_ptr = n->curr_off();
                 n->off += 4;
             }
             break;
@@ -523,6 +548,7 @@ namespace Lunaris {
             n->skip_next_spaces_auto();
 
             nr->key_ptr = nullptr; // array item does not have key
+            nr->key_is_val = true;
 
             parse_value(nr, n);
 
@@ -589,8 +615,8 @@ namespace Lunaris {
             {
                 spaceline();
                 print_key_if_exists();
-                if (strncmp(ref->val_ptr, "true", 4) == 0)  stronf("true");
-                else                                        stronf("false");
+                if (strncmp(ref->get_val_ptr(), "true", 4) == 0)  stronf("true");
+                else                                              stronf("false");
             }
             break;
             case type::NIL:
@@ -605,8 +631,8 @@ namespace Lunaris {
                 spaceline();
                 print_key_if_exists();
 
-                const char* val_beg = ref->val_ptr;
-                const char* val_end = ref->val_ptr;
+                const char* val_beg = ref->get_val_ptr();
+                const char* val_end = val_beg;
                 offsetter = 0;
                 __skip_number(val_end, offsetter);
                 val_end += offsetter;
@@ -619,8 +645,8 @@ namespace Lunaris {
                 spaceline();
                 print_key_if_exists();
 
-                const char* val_beg = ref->val_ptr;
-                const char* val_end = ref->val_ptr;
+                const char* val_beg = ref->get_val_ptr();
+                const char* val_end = val_beg;
                 offsetter = 0;
                 __skip_string_auto_escape(val_end, offsetter);
                 val_end += offsetter;
@@ -696,49 +722,49 @@ namespace Lunaris {
 
     inline int64_t JSON::get_int() const
     {
-        return m_ref ? autostrtoT<int64_t>(m_ref->val_ptr, nullptr) : int64_t{};
+        return m_ref ? autostrtoT<int64_t>(m_ref->get_val_ptr(), nullptr) : int64_t{};
     }
 
     inline uint64_t JSON::get_uint() const
     {
-        return m_ref ? autostrtoT<uint64_t>(m_ref->val_ptr, nullptr) : uint64_t{};
+        return m_ref ? autostrtoT<uint64_t>(m_ref->get_val_ptr(), nullptr) : uint64_t{};
     }
 
     inline float JSON::get_float() const
     {
-        return m_ref ? autostrtoT<float>(m_ref->val_ptr, nullptr) : float{};
+        return m_ref ? autostrtoT<float>(m_ref->get_val_ptr(), nullptr) : float{};
     }
 
     inline double JSON::get_double() const
     {
-        return m_ref ? autostrtoT<double>(m_ref->val_ptr, nullptr) : double{};
+        return m_ref ? autostrtoT<double>(m_ref->get_val_ptr(), nullptr) : double{};
     }
 
     inline bool JSON::get_bool() const
     {
-        return m_ref ? strncmp(m_ref->val_ptr, "true", 4) == 0 : false;
+        return m_ref ? strncmp(m_ref->get_val_ptr(), "true", 4) == 0 : false;
     }
     inline bool JSON::get_is_null() const
     {
-        return m_ref ? strncmp(m_ref->val_ptr, "null", 4) == 0 : false;
+        return m_ref ? (m_ref->self_type == type::NIL) : false;
     }
 
     template<typename T>
     inline T JSON::get_number() const
     {
-        return m_ref ? autostrtoT<T>(m_ref->val_ptr, nullptr) : T{};
+        return m_ref ? autostrtoT<T>(m_ref->get_val_ptr(), nullptr) : T{};
     }
 
     inline const char* JSON::get_string_noalloc() const
     {
-        return m_ref ? m_ref->val_ptr : nullptr;
+        return m_ref ? m_ref->get_val_ptr() : nullptr;
     }
 
     inline const char* JSON::get_string() const
     {
         if (!m_ref) return nullptr;
 
-        const char* str_beg = m_ref->val_ptr;
+        const char* str_beg = m_ref->get_val_ptr();
         if (m_charptr_clean && strncmp(m_charptr_clean, str_beg, strlen(m_charptr_clean)) == 0) return m_charptr_clean;
 
         size_t len = 0;
