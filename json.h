@@ -9,6 +9,7 @@ namespace Lunaris {
 	class IterateableJSONRef {
 	public:
 		IterateableJSONRef() = default;
+		virtual ~IterateableJSONRef() {}
 		IterateableJSONRef(const IterateableJSONRef&) = delete;
 		IterateableJSONRef(IterateableJSONRef&&) = delete;
 		void operator=(const IterateableJSONRef&) = delete;
