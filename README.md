@@ -28,14 +28,14 @@ struct ref {
   ref* next; // if this is an array or sequence of objects in an object, this is the next one
   ref* child; // if this is a key -> object or key -> array, the object/array is here
 
-  const char* key_ptr; // start of key or value, pointer from parse
+  size_t key_ptr; // start of key or value, offset from parse
   
   type self_type; // its type, like NUMBER, STRING, OBJECT...
   bool key_is_val; // used when it is in an array.
 };
 ```
 
-*3 pointers, one 16 bit integer enum and a bool. Good enough? I think so. Better than saving an int, a double, something else and a copy of a string.*
+*2 pointers, one offset, one 8 bit integer enum and a bool. Good enough? I think so. Better than saving an int, a double, something else and a copy of a string.*
 
 *I'm doing this reference thing quick so you can use it too, but maybe in the future I can make this readme better.*
 
@@ -56,4 +56,22 @@ const char* c_str = c;
 std::cout << "Yooo: " << c_str << std::endl;
 std::cout << "Also works: " << (const char*)c << std::endl;
 // actually you can cast to a lot of types and it should work. If you want to be sure, use the get_*** ones.
+```
+```cpp
+// Wrap FILE* as an iterateable thing
+class FileJSON : public IterateableJSONRef {
+    FILE* m_fp;
+public:
+    FileJSON(FILE*&& fp) : IterateableJSONRef(), m_fp(fp) { fp = nullptr; }
+    ~FileJSON() { fclose(m_fp); }
+
+    char get(const size_t at) const { fseek(m_fp, static_cast<long>(at), SEEK_SET); int v = fgetc(m_fp); return v < 0 ? '\0' : static_cast<char>(v); }
+    void read(char* ptr, const size_t len, const size_t at) const { fseek(m_fp, static_cast<long>(at), SEEK_SET); fread(ptr, sizeof(char), len, m_fp); }
+    size_t max_off() const { return static_cast<size_t>(-1); } // assume infinite storage lmao
+};
+// ...
+FILE* fp;
+// open, fill, do things with fp, put JSON in it, then...
+JSON j(new FileJSON((FILE*&&)fp)); // I made FileJSON take the pointer and close by itself when done
+// use j as any json like before. It should have parsed from now on.
 ```
