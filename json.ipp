@@ -689,8 +689,6 @@ namespace Lunaris {
             }
         };
 
-
-        size_t offsetter = 0;
         while (1) {
             switch (ref->self_type) {
             case type::BOOL:
