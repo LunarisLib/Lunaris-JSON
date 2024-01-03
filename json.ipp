@@ -886,6 +886,7 @@ namespace Lunaris {
     inline const char* JSON::get_string() const
     {
         if (!m_ref) return nullptr;
+        if (m_ref->self_type == type::NIL) return "null";
 
         if (m_charptr_clean && m_ref->is_eq_val_ptr_val(m_base, m_charptr_clean, strlen(m_charptr_clean)) == 0) return m_charptr_clean;
         size_t str_beg = m_ref->get_val_ptr(m_base);
