@@ -69,7 +69,7 @@ const char buf[] = R"(
     }    }
   )";
 
-Json j{ new ParseableArrayWrapper(buf, std::size(buf)) };
+Json j{ std::make_shared<ParseableArrayWrapper>(buf, std::size(buf)) };
 // ...
 ```
 

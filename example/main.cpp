@@ -15,7 +15,7 @@ int main() {
 	    }    }
     )";
 
-    Json j{ new ParseableArrayWrapper(buf, std::size(buf)) };
+    Json j{ std::make_shared<ParseableArrayWrapper>(buf, std::size(buf)) };
 
     if (j.get_type() != Json::e_type::OBJECT) return 1;
     if (j["test"].get_type() != Json::e_type::NUMBER) return 1;

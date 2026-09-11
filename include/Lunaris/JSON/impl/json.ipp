@@ -24,7 +24,7 @@ namespace JSON {
         2: engineer notation, negative power of 10
         3: decimal, may have engineer notation later, -= 1 for power each round
         */
-        uint8_t is_e = 0;
+        int8_t is_e = 0;
         bool is_neg = 0;
 
         for (char sp = src->get(boff + p); sp != '\0' && is_e >= 0; sp = src->get(boff + p)) {
@@ -106,7 +106,7 @@ namespace JSON {
         2: engineer notation, negative power of 10
         3: decimal, may have engineer notation later, -= 1 for power each round
         */
-        uint8_t is_e = 0;
+        int8_t is_e = 0;
         bool is_neg = 0;
 
         for (char sp = src->get(boff + p); sp != '\0' && is_e >= 0; sp = src->get(boff + p)) {

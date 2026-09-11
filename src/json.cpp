@@ -62,8 +62,8 @@ namespace JSON {
         boff = buf->get(off)) ++off;
     }
 
-    Json::Json(ParseableJson*&& readable_json) 
-        : m_ref(new ref()), m_charptr_clean(nullptr), m_root(true), m_base(std::move(readable_json))
+    Json::Json(std::shared_ptr<ParseableJson> readable_json) 
+        : m_ref(std::make_shared<ref>()), m_charptr_clean(nullptr), m_root(true), m_base(std::move(readable_json))
     {
         readable_json = nullptr;
         nav navigation{ m_base, 0, {} };
@@ -72,10 +72,7 @@ namespace JSON {
 
     Json::Json(Json&& oth)
         : m_ref(oth.m_ref), m_charptr_clean(std::move(oth.m_charptr_clean)), m_root(oth.m_root), m_base(oth.m_base) 
-    {
-        oth.m_ref = nullptr;
-        oth.m_base = nullptr;
-    }
+    {}
 
     Json::~Json() {
         _free();
@@ -102,14 +99,14 @@ namespace JSON {
     }
 
     bool Json::get_bool() const {
-        return m_ref ? m_ref->is_eq_val_ptr_val(m_base, "true", 4) == 0 : false;
+        return m_ref ? m_ref->is_eq_val_ptr_val(m_base, "true", 4) : false;
     }
 
     bool Json::get_is_null() const {
         return m_ref ? (m_ref->self_type == e_type::NIL) : false;
     }
 
-    const char* Json::get_string() const {
+    const char* Json::get_cstr() const {
         if (!m_ref) return nullptr;
         if (m_ref->self_type == e_type::NIL) return "null";
 
@@ -144,6 +141,10 @@ namespace JSON {
         m_charptr_clean[len - str_beg] = '\0';
 
         return m_charptr_clean.get();
+    }
+
+    std::string Json::get_string() const {
+        return std::string{ get_cstr() };
     }
 
     const char* Json::get_key() const {
@@ -258,6 +259,10 @@ namespace JSON {
     }
 
     Json::operator const char*() const {
+        return this->get_cstr();
+    }
+
+    Json::operator std::string() const {
         return this->get_string();
     }
     
@@ -317,10 +322,9 @@ namespace JSON {
 
         if (keylen - key_ptr != l) return false; // size of key is less than size of test, so test has more chars.
 
-        char* tmp = new char[l];
-        base->read(tmp, l, key_ptr);
-        const bool eq = memcmp(tmp, str, l) == 0;
-        delete[] tmp;
+        auto tmp = std::make_unique<char[]>(l);
+        base->read(tmp.get(), l, key_ptr);
+        const bool eq = memcmp(tmp.get(), str, l) == 0;
 
         return eq;
     }
@@ -330,10 +334,9 @@ namespace JSON {
         const size_t at = get_val_ptr(base);
         if (at == static_cast<size_t>(-1)) return false;
 
-        char* tmp = new char[l];
-        base->read(tmp, l, at);
-        const bool eq = memcmp(tmp, str, l) == 0;
-        delete[] tmp;
+        auto tmp = std::make_unique<char[]>(l);
+        base->read(tmp.get(), l, at);
+        const bool eq = memcmp(tmp.get(), str, l) == 0;
 
         return eq;
     }

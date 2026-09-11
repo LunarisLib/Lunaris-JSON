@@ -6,6 +6,7 @@
 #include <memory>
 #include <type_traits>
 #include <functional>
+#include <string>
 
 namespace Lunaris {
 namespace JSON {
@@ -40,9 +41,9 @@ namespace JSON {
 		 * 
 		 * You can make your own implementation of ParseableJson if you want to too.
 		 * 
-		 * @param `readable_json` a new ParseableJson to be managed by this object
+		 * @param `readable_json` a ParseableJson to be managed by this object
 		 */
-        Json(ParseableJson*&& readable_json);
+        Json(std::shared_ptr<ParseableJson> readable_json);
 
 		/**
 		 * @brief Construct a new Json object moving another to it
@@ -113,9 +114,16 @@ namespace JSON {
 		/**
 		 * @brief Get value as string
 		 * 
+		 * @return `std::string` copy of value as string
+		 */
+		std::string get_string() const;
+
+		/**
+		 * @brief Get value as C string
+		 * 
 		 * @return `const char*` temporary array with value, valid until another get_* call
 		 */
-		const char* get_string() const;
+		const char* get_cstr() const;
 
 		/**
 		 * @brief Get key as string
@@ -178,6 +186,7 @@ namespace JSON {
 		operator float() const;
 		operator double() const;
 		operator const char*() const;
+		operator std::string() const;
 
     private:
         // with engineer format support (+ decimal calculation if needed, not in power)
