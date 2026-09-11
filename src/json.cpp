@@ -1,5 +1,6 @@
 #include <cstring>
 
+#include <Lunaris/JSON/exception.h>
 #include <Lunaris/JSON/json.h>
 
 namespace Lunaris {
@@ -119,7 +120,7 @@ namespace JSON {
         size_t str_beg = m_ref->get_val_ptr(m_base);
 
         if (str_beg == static_cast<size_t>(-1))
-            throw std::runtime_error("Unable to read position of value in base");
+            throw JsonException("Unable to read position of value in base");
 
         size_t len = str_beg;
         switch (m_ref->self_type) {
@@ -154,7 +155,7 @@ namespace JSON {
 
         size_t str_beg = m_ref->key_ptr;
         if (str_beg == static_cast<size_t>(-1))
-            throw std::runtime_error("Unable to read position of value in base");
+            throw JsonException("Unable to read position of value in base");
 
         size_t len = str_beg;
         switch (m_ref->self_type) {
@@ -367,10 +368,9 @@ namespace JSON {
 
     void Json::prt::put(char ch) {
         if (fun) fun(ch);
-        else target[target_off] = ch;
+        else if (target) target[target_off] = ch;
         ++target_off;
     }
-
 
 
     void Json::_free() {
@@ -469,7 +469,7 @@ namespace JSON {
             n->skip_string_auto_escape();
             ++n->off; // skip "
             n->skip_next_spaces_auto(); // skip until :
-            if (n->curr_ch() != ':') throw std::runtime_error("JSON malformed."); // "key": value... where is :?
+            if (n->curr_ch() != ':') throw JsonException("JSON malformed."); // "key": value... where is :?
             ++n->off; // skip :
 
             parse_value(nr, n);
@@ -569,7 +569,7 @@ namespace JSON {
                     strnonf(val_beg, val_end);
                 }
                 else {
-                    throw std::runtime_error("Invalid position read at print_any NUMBER case");
+                    throw JsonException("Invalid position read at print_any NUMBER case");
                 }
             }
             break;
@@ -588,7 +588,7 @@ namespace JSON {
                     f.put('\"');
                 }
                 else {
-                    throw std::runtime_error("Invalid position read at print_any STRING case");
+                    throw JsonException("Invalid position read at print_any STRING case");
                 }
             }
             break;

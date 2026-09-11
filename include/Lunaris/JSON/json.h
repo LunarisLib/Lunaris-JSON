@@ -10,10 +10,16 @@
 namespace Lunaris {
 namespace JSON {
 
+	/**
+	 * @brief Json is the object to parse and manage Json objects
+	 */
     class Json {
     public:
 		typedef void(*printer_char_function)(char);
 
+		/**
+		 * @brief Type of the object stored in this level of the Json file.
+		 */
 		enum class e_type : uint8_t {
 			INVALID,	// got bad or null
 			BOOL,		// true or false, no child
@@ -24,35 +30,142 @@ namespace JSON {
 			OBJECT		// object with stuff. They are at *child and child may have next or child...
 		};
 
+
         Json(const Json&) = delete;
         void operator=(const Json&) = delete;
         void operator=(Json&& oth) = delete;
 
+		/**
+		 * @brief Construct a new Json object from a Parseable Json
+		 * 
+		 * You can make your own implementation of ParseableJson if you want to too.
+		 * 
+		 * @param `readable_json` a new ParseableJson to be managed by this object
+		 */
         Json(ParseableJson*&& readable_json);
+
+		/**
+		 * @brief Construct a new Json object moving another to it
+		 * 
+		 * @param `oth` the Json object being moved
+		 */
         Json(Json&& oth);
 
         ~Json();
 
+		/**
+		 * @brief Get the type this object is holding
+		 * 
+		 * @return `e_type` enum with the type of this object
+		 */
         e_type get_type() const;
 
+		/**
+		 * @brief Get as int64_t
+		 * 
+		 * @return `int64_t` the value as int64_t, or zero
+		 */
 		int64_t get_int() const;
+
+		/**
+		 * @brief Get as uint64_t
+		 * 
+		 * @return `uint64_t` the value as int64_t, or zero
+		 */
 		uint64_t get_uint() const;
+
+		/**
+		 * @brief Get as float
+		 * 
+		 * @return `float` the value as float, or zero
+		 */
 		float get_float() const;
+
+		/**
+		 * @brief Get as double
+		 * 
+		 * @return `double` the value as double, or zero
+		 */
 		double get_double() const;
+
+		/**
+		 * @brief Get as bool
+		 * 
+		 * @return `bool` the value as bool, or zero
+		 */
 		bool get_bool() const;
+
+		/**
+		 * @brief Get if value is null
+		 * 
+		 * @return `bool` is the value null?
+		 */
 		bool get_is_null() const;
 
+		/**
+		 * @brief Get as close as possible to type T (numeric)
+		 * 
+		 * @return `T` 
+		 */
 		template<typename T>
         T get_number() const;
 
+		/**
+		 * @brief Get value as string
+		 * 
+		 * @return `const char*` temporary array with value, valid until another get_* call
+		 */
 		const char* get_string() const;
+
+		/**
+		 * @brief Get key as string
+		 * 
+		 * @return `const char*` temporary array with key, valid until another get_* call
+		 */
 		const char* get_key() const;
 
+		/**
+		 * @brief Do a dump of the object using the callback for print
+		 * 
+		 * @param `f` callback that receives each `char`
+		 * @param `lining` each line gap/offset
+		 * @param `space_ch` what to use as space
+		 * @return `size_t` the amount of characters printed
+		 */
 		size_t print(printer_char_function f, const size_t lining = 2, const char space_ch = ' ') const;
+
+		/**
+		 * @brief Do a dump of the object on the `buf` buffer
+		 * 
+		 * @param `buf` the buffer to write into, or null to calculate size
+		 * @param `lining` each line gap/offset
+		 * @param `space_ch` what to use as space
+		 * @return `size_t` the amount of characters written
+		 */
 		size_t print_to(char* buf, const size_t lining = 2, const char space_ch = ' ') const;
 
+		/**
+		 * @brief Access object's value from key
+		 * 
+		 * @param `key` the key being accessed
+		 * @return `Json` the object in this key
+		 */
 		Json operator[](const char* key) const;
+
+		/**
+		 * @brief Access an index of the array
+		 * 
+		 * @param `idx` the index, from 0 to size of it
+		 * @return `Json` the object in this index
+		 */
 		Json operator[](size_t idx) const;
+
+		/**
+		 * @brief Access an index of the array
+		 * 
+		 * @param `idx` the index, from 0 to size of it
+		 * @return `Json` the object in this index
+		 */
 		Json operator[](int idx) const;
 
 		operator int16_t() const;
