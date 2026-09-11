@@ -182,49 +182,49 @@ namespace JSON {
     private:
         // with engineer format support (+ decimal calculation if needed, not in power)
         template<typename T, typename std::enable_if<!std::is_floating_point<T>::value, int>::type = 0>
-        T strtoT_e(const ParseableJson* const, const size_t) const;
+        T strtoT_e(const std::shared_ptr<ParseableJson>&, const size_t) const;
         // double doesn't allow ~= operator, so we're doing just it = -it when negative!
         template<typename T, typename std::enable_if<std::is_floating_point<T>::value, int>::type = 0>
-        T strtoT_e(const ParseableJson* const, const size_t) const;
+        T strtoT_e(const std::shared_ptr<ParseableJson>&, const size_t) const;
 
         // any type from 0x, 0X or directly 0123ABC hex decl
         template<typename T, typename std::enable_if<!std::is_floating_point<T>::value, int>::type = 0>
-        T hextoT(const ParseableJson* const, size_t) const;
+        T hextoT(const std::shared_ptr<ParseableJson>&, size_t) const;
         // adapt to use int64_t and cast back. That's what we have for today.
         template<typename T, typename std::enable_if<std::is_floating_point<T>::value, int>::type = 0>
-        T hextoT(const ParseableJson* const, size_t) const;
+        T hextoT(const std::shared_ptr<ParseableJson>&, size_t) const;
 
         // auto select hextoT or strtoT based on input
         template<typename T>
-        T autostrtoT(const ParseableJson* const, const size_t) const;
+        T autostrtoT(const std::shared_ptr<ParseableJson>&, const size_t) const;
 
 
 		struct ref {
-			ref* next = nullptr; // alloc here
+			std::shared_ptr<ref> next; // alloc here
 			/* An array or object item will have a child pointer pointing to a chain of the items in the array/object. */
-			ref* child = nullptr; // alloc here
+			std::shared_ptr<ref> child; // alloc here
 
 			size_t key_ptr{};
 
 			e_type self_type = e_type::INVALID;
 			bool key_is_val = false;
 
-			ref* make_child();
-			ref* make_next();
+			std::shared_ptr<ref> make_child();
+			std::shared_ptr<ref> make_next();
 
 			void free_next_and_child();
 
-			size_t get_val_ptr(const ParseableJson* const) const; // run key_ptr + ...: * if bool, nil, number or string only
+			size_t get_val_ptr(const std::shared_ptr<ParseableJson>&) const; // run key_ptr + ...: * if bool, nil, number or string only
 
 			// checks within valid range
-			bool is_eq_key_ptr_val(const ParseableJson* const, const char*, const size_t) const;
+			bool is_eq_key_ptr_val(const std::shared_ptr<ParseableJson>&, const char*, const size_t) const;
 			// no check for range
-			bool is_eq_val_ptr_val(const ParseableJson* const, const char*, const size_t) const;
+			bool is_eq_val_ptr_val(const std::shared_ptr<ParseableJson>&, const char*, const size_t) const;
 		};
 
 		struct nav {
 			//const char* buf = nullptr;
-			const ParseableJson* const base;
+			const std::shared_ptr<ParseableJson>& base;
 			size_t off;
 			mutable char minibuf[8]{};
 
@@ -237,7 +237,7 @@ namespace JSON {
 		};
 
 		struct prt {
-			const ParseableJson* const m_base = nullptr; // source
+			const std::shared_ptr<ParseableJson>& m_base; // source
 			printer_char_function fun;
 			size_t lining; // 0 == no break no line, 1 = break, 1 space per depth, 2 = break, 2 ...
 			size_t curr_depth = 0;
@@ -249,25 +249,25 @@ namespace JSON {
 			void put(char);
 		};
 
-		ref* m_ref{};
+		std::shared_ptr<ref> m_ref{};
 		mutable std::unique_ptr<char[]> m_charptr_clean; // used temporarily in get_key or get_string so no extra data is returned!
 		const bool m_root;
-		ParseableJson* m_base; // source
+		std::shared_ptr<ParseableJson> m_base; // source
 
 		// free all
 		void _free();
 
 		// copy and assume it is not root
-		Json(ref*, ParseableJson*);
+		Json(std::shared_ptr<ref>, std::shared_ptr<ParseableJson>);
 
-		char get_val_of(ref*);
+		char get_val_of(std::shared_ptr<ref>&);
 
-		static void parse_value(ref*, nav*);
+		static void parse_value(std::shared_ptr<ref>&, nav&);
 
-		static void parse_object(ref*, nav*);
-		static void parse_array(ref*, nav*);
+		static void parse_object(std::shared_ptr<ref>&, nav&);
+		static void parse_array(std::shared_ptr<ref>&, nav&);
 
-		static size_t print_any(ref*, prt&);
+		static size_t print_any(std::shared_ptr<ref>, prt&);
     };
 
 } // namespace JSON

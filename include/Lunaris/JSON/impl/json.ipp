@@ -12,7 +12,7 @@ namespace JSON {
     }
 
     template<typename T, typename std::enable_if<!std::is_floating_point<T>::value, int>::type>
-    inline T Json::strtoT_e(const ParseableJson* const src, const size_t boff) const {
+    inline T Json::strtoT_e(const std::shared_ptr<ParseableJson>& src, const size_t boff) const {
         if (!src || boff == static_cast<size_t>(-1)) return {};
         T gen{};
         // power -> engineer notation, power_dec -> from decimal only.
@@ -94,7 +94,7 @@ namespace JSON {
     }
 
     template<typename T, typename std::enable_if<std::is_floating_point<T>::value, int>::type>
-    inline T Json::strtoT_e(const ParseableJson* const src, const size_t boff) const {
+    inline T Json::strtoT_e(const std::shared_ptr<ParseableJson>& src, const size_t boff) const {
         if (!src || boff == static_cast<size_t>(-1)) return {};
         T gen{};
         // power -> engineer notation, power_dec -> from decimal only.
@@ -176,7 +176,7 @@ namespace JSON {
     }
 
     template<typename T, typename std::enable_if<!std::is_floating_point<T>::value, int>::type>
-    inline T Json::hextoT(const ParseableJson* const src, size_t boff) const {
+    inline T Json::hextoT(const std::shared_ptr<ParseableJson>& src, size_t boff) const {
         if (!src || boff == static_cast<size_t>(-1)) return {};
         char sb[2]{};
         src->read(sb, 2, boff);
@@ -237,7 +237,7 @@ namespace JSON {
     }
 
     template<typename T, typename std::enable_if<std::is_floating_point<T>::value, int>::type>
-    inline T Json::hextoT(const ParseableJson* const src, size_t boff) const {
+    inline T Json::hextoT(const std::shared_ptr<ParseableJson>& src, size_t boff) const {
         if (!src || boff == static_cast<size_t>(-1)) return {};
         char sb[2]{};
         src->read(sb, 2, boff);
@@ -301,7 +301,7 @@ namespace JSON {
     }
 
     template<typename T>
-    inline T Json::autostrtoT(const ParseableJson* const src, const size_t boff) const {
+    inline T Json::autostrtoT(const std::shared_ptr<ParseableJson>& src, const size_t boff) const {
         const char s0 = src->get(boff);
         const char s1 = src->get(boff + 1);
         const char s2 = src->get(boff + 2);

@@ -10,7 +10,7 @@ namespace JSON {
         while (buf[off] <= 32 && buf[off] != '\0') ++off;
     }
 
-    void __skip_next_spaces_auto(const ParseableJson* const buf, size_t& off) {
+    void __skip_next_spaces_auto(const std::shared_ptr<ParseableJson>& buf, size_t& off) {
         while (buf->get(off) <= 32 && buf->get(off) != '\0') ++off;
     }
 
@@ -21,7 +21,7 @@ namespace JSON {
         }
     }
 
-    void __skip_string_auto_escape(const ParseableJson* const buf, size_t& off) {
+    void __skip_string_auto_escape(const std::shared_ptr<ParseableJson>& buf, size_t& off) {
         for (char boff = buf->get(off); boff != '\"' && boff != '\0'; boff = buf->get(off)) {
             if (boff == '\\' && boff != '\0') ++off;
             ++off;
@@ -45,7 +45,7 @@ namespace JSON {
             ) ++off;
     }
 
-    void __skip_number(const ParseableJson* const buf, size_t& off) {
+    void __skip_number(const std::shared_ptr<ParseableJson>& buf, size_t& off) {
         for (char boff = buf->get(off);
             (
                 boff == '-' ||
@@ -67,7 +67,7 @@ namespace JSON {
     {
         readable_json = nullptr;
         nav navigation{ m_base, 0, {} };
-        parse_value(m_ref, &navigation);
+        parse_value(m_ref, navigation);
     }
 
     Json::Json(Json&& oth)
@@ -196,7 +196,7 @@ namespace JSON {
     Json Json::operator[](const char* key) const {
         if (!m_ref || m_ref->self_type != e_type::OBJECT) return Json(nullptr, nullptr);
 
-        for (ref* it = m_ref->child; it != nullptr; it = it->next)
+        for (auto it = m_ref->child; it != nullptr; it = it->next)
         {
             if (it->is_eq_key_ptr_val(m_base, key, strlen(key)))
                 return Json(it, m_base);
@@ -208,7 +208,7 @@ namespace JSON {
     Json Json::operator[](size_t idx) const {
         if (!m_ref || m_ref->self_type != e_type::ARRAY) return Json(nullptr, nullptr);
 
-        for (ref* it = m_ref->child; it != nullptr; it = it->next)
+        for (auto it = m_ref->child; it != nullptr; it = it->next)
         {
             if (idx-- == 0) return Json(it, m_base);
         }
@@ -262,30 +262,28 @@ namespace JSON {
     }
     
 
-    Json::ref* Json::ref::make_child() {
+    std::shared_ptr<Json::ref> Json::ref::make_child() {
         if (this->child) return this->child;
-        return (this->child = new ref());
+        return (this->child = std::make_shared<ref>());
     }
 
-    Json::ref* Json::ref::make_next() {
+    std::shared_ptr<Json::ref> Json::ref::make_next() {
         if (this->next) return this->next;
-        return (this->next = new ref());
+        return (this->next = std::make_shared<ref>());
     }
 
     void Json::ref::free_next_and_child() {
         if (this->next) {
             this->next->free_next_and_child();
-            delete this->next;
-            this->next = nullptr;
+            this->next.reset();
         }
         if (this->child) {
             this->child->free_next_and_child();
-            delete this->child;
-            this->child = nullptr;
+            this->child.reset();
         }
     }
 
-    size_t Json::ref::get_val_ptr(const ParseableJson* const base) const {
+    size_t Json::ref::get_val_ptr(const std::shared_ptr<ParseableJson>& base) const {
         if (key_is_val) return key_ptr; // array objects don't have a key, so the key will be used as the value
         if (self_type == e_type::NIL) return static_cast<size_t>(-1); // quick
 
@@ -310,7 +308,7 @@ namespace JSON {
         return off;
     }
 
-    bool Json::ref::is_eq_key_ptr_val(const ParseableJson* const base, const char* str, const size_t l) const {
+    bool Json::ref::is_eq_key_ptr_val(const std::shared_ptr<ParseableJson>& base, const char* str, const size_t l) const {
         if (l == 0) return true;
         if (key_ptr == static_cast<size_t>(-1)) return false;
 
@@ -327,7 +325,7 @@ namespace JSON {
         return eq;
     }
 
-    bool Json::ref::is_eq_val_ptr_val(const ParseableJson* const base, const char* str, const size_t l) const {
+    bool Json::ref::is_eq_val_ptr_val(const std::shared_ptr<ParseableJson>& base, const char* str, const size_t l) const {
         if (l == 0) return true;
         const size_t at = get_val_ptr(base);
         if (at == static_cast<size_t>(-1)) return false;
@@ -377,142 +375,138 @@ namespace JSON {
         if (!m_root) return;
         if (m_ref) {
             m_ref->free_next_and_child();
-            delete m_ref;
-            m_ref = nullptr;
+            m_ref.reset();
         }
         m_charptr_clean.reset();
-        if (m_base) {
-            delete m_base;
-            m_base = nullptr;
-        }
+        m_base.reset();
     }
 
-    Json::Json(Json::ref* r, ParseableJson* jr)
+    Json::Json(std::shared_ptr<ref> r, std::shared_ptr<ParseableJson> jr)
         : m_ref(r), m_charptr_clean(nullptr), m_root(false), m_base(jr)
     {}
 
-    char Json::get_val_of(ref* r) {
+    char Json::get_val_of(std::shared_ptr<ref>& r) {
         return r ? m_base->get(r->key_ptr) : '\0';
     }
 
-    void Json::parse_value(ref* r, nav* n) {
-        n->skip_next_spaces_auto();
+    void Json::parse_value(std::shared_ptr<ref>& r, nav& n) {
+        n.skip_next_spaces_auto();
 
-        switch (n->curr_ch()) {
+        switch (n.curr_ch()) {
         case '-': case '+':
         case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
             r->self_type = e_type::NUMBER;
-            if (r->key_is_val) r->key_ptr = n->off;// n->curr_off();
-            n->skip_number();
+            if (r->key_is_val) r->key_ptr = n.off;// n.curr_off();
+            n.skip_number();
             break;
         case '\"':
             r->self_type = e_type::STRING;
-            ++n->off;
-            if (r->key_is_val) r->key_ptr = n->off;// n->curr_off();
-            n->skip_string_auto_escape();
-            ++n->off;
+            ++n.off;
+            if (r->key_is_val) r->key_ptr = n.off;// n.curr_off();
+            n.skip_string_auto_escape();
+            ++n.off;
             break;
         case '{':
         {
             r->self_type = e_type::OBJECT;
             parse_object(r, n);
-            n->skip_next_spaces_auto();
+            n.skip_next_spaces_auto();
         }
             break;
         case '[':
         {
             r->self_type = e_type::ARRAY;
             parse_array(r, n);
-            n->skip_next_spaces_auto();
+            n.skip_next_spaces_auto();
         }
             break;
         default:
-            const char* curr = n->curr_off();
+            const char* curr = n.curr_off();
 
             if (strncmp(curr, "true", 4) == 0)
             {
                 r->self_type = e_type::BOOL;
-                if (r->key_is_val) r->key_ptr = n->off;//  n->curr_off();
-                n->off += 4;
+                if (r->key_is_val) r->key_ptr = n.off;//  n.curr_off();
+                n.off += 4;
             }
             else if (strncmp(curr, "false", 5) == 0)
             {
                 r->self_type = e_type::BOOL;
-                if (r->key_is_val) r->key_ptr = n->off;//  n->curr_off();
-                n->off += 5;
+                if (r->key_is_val) r->key_ptr = n.off;//  n.curr_off();
+                n.off += 5;
             }
             else if (strncmp(curr, "null", 4) == 0)
             {
                 r->self_type = e_type::NIL;
-                if (r->key_is_val) r->key_ptr = n->off;//  n->curr_off();
-                n->off += 4;
+                if (r->key_is_val) r->key_ptr = n.off;//  n.curr_off();
+                n.off += 4;
             }
             break;
         }
     }
 
-    void Json::parse_object(ref* r, nav* n) {
+    void Json::parse_object(std::shared_ptr<ref>& r, nav& n) {
         // should be at {
-        ++n->off; // skip {
-        n->skip_next_spaces_auto();
+        ++n.off; // skip {
+        n.skip_next_spaces_auto();
 
-        if (n->curr_ch() == '}') { ++n->off; return; } // empty object + skip }
+        if (n.curr_ch() == '}') { ++n.off; return; } // empty object + skip }
 
-        auto* nr = r->make_child();
+        auto nr = r->make_child();
 
         do {
-            if (n->curr_ch() == ',') ++n->off;
-            n->skip_next_spaces_auto();
-            ++n->off; // skip "
+            if (n.curr_ch() == ',') ++n.off;
+            n.skip_next_spaces_auto();
+            ++n.off; // skip "
 
-            nr->key_ptr = n->off;
-            n->skip_string_auto_escape();
-            ++n->off; // skip "
-            n->skip_next_spaces_auto(); // skip until :
-            if (n->curr_ch() != ':') throw JsonException("JSON malformed."); // "key": value... where is :?
-            ++n->off; // skip :
+            nr->key_ptr = n.off;
+            n.skip_string_auto_escape();
+            ++n.off; // skip "
+            n.skip_next_spaces_auto(); // skip until :
+            if (n.curr_ch() != ':') throw JsonException("JSON malformed."); // "key": value... where is :?
+            ++n.off; // skip :
 
             parse_value(nr, n);
 
-            n->skip_next_spaces_auto();
+            n.skip_next_spaces_auto();
 
-            if (!n->eof() && n->curr_ch() != '}') {
+            if (!n.eof() && n.curr_ch() != '}') {
                 nr = nr->make_next();
             }
             else break;
         } while (1);
-        ++n->off; // skip }
+        ++n.off; // skip }
     }
 
-    void Json::parse_array(ref* r, nav* n) {
+    void Json::parse_array(std::shared_ptr<ref>& r, nav& n) {
         // should be at {
-        ++n->off; // skip {
-        n->skip_next_spaces_auto();
+        ++n.off; // skip {
+        n.skip_next_spaces_auto();
 
-        if (n->curr_ch() == ']') { ++n->off; return; } // empty object + skip }
+        if (n.curr_ch() == ']') { ++n.off; return; } // empty object + skip }
 
-        auto* nr = r->make_child();
+        auto nr = r->make_child();
 
         do {
-            if (n->curr_ch() == ',') ++n->off;
-            n->skip_next_spaces_auto();
+            if (n.curr_ch() == ',') ++n.off;
+            n.skip_next_spaces_auto();
 
             nr->key_ptr = static_cast<size_t>(-1); // array item does not have key
             nr->key_is_val = true;
 
             parse_value(nr, n);
 
-            n->skip_next_spaces_auto();
+            n.skip_next_spaces_auto();
 
-            if (!n->eof() && n->curr_ch() != ']') {
+            if (!n.eof() && n.curr_ch() != ']') {
                 nr = nr->make_next();
             }
             else break;
         } while (1);
-        ++n->off; // skip ]
+        ++n.off; // skip ]
     }
 
-    size_t Json::print_any(ref* ref, prt& f) {
+    size_t Json::print_any(std::shared_ptr<ref> ref, prt& f) {
         if (!ref) return 0;
 
         bool fnl = f.curr_depth == 0;
