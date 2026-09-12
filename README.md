@@ -1,27 +1,81 @@
-# Lunaris JSON! in C++!
+# Lunaris JSON Library
 
-*Of course it is in C++, but why? Why did I create this?*
+This is a JSON library that you can add on your project! It works on both Windows and Linux.
 
-*Look at this fancy code:*
+There are some tests to check if it builds correctly and they can be disabled with `BUILD_TESTS OFF`.
+
+## How to add the project to your project
+
+### Using FetchContent
+
+You can create a file like `cmake/installLibrary.cmake` and put in there:
+
+```cmake
+include(FetchContent)
+
+FetchContent_Declare(
+    lunaris-json
+    GIT_REPOSITORY https://github.com/LunarisLib/lunaris-json.git
+    GIT_TAG        (put version here)
+)
+FetchContent_MakeAvailable(lunaris-json)
+```
+
+This will allow you to download and link the library like:
+
+```cmake
+# ...
+
+include(cmake/installLibrary.cmake) # does the FetchContent
+
+target_link_libraries(YourProjectName PRIVATE
+    lunaris::lunaris-json
+)
+```
+
+### Using find_package()
+
+If you get the install version with the lib and headers and want to avoid recompiling the library yourself, you can do
+
+```cmake
+# ...
+
+find_package(lunaris-json REQUIRED)
+
+target_link_libraries(YourProjectName PRIVATE
+    lunaris::lunaris-json
+)
+```
+
+The find_package will try to find the `lunaris-json-config.cmake` or similar files that should be available to download in the Release tab.
+
+## How to use it
+
+Look at this fancy code:
 
 ```cpp
-#include <string>
-#include "json.h"
+// ...
+#include <Lunaris/json.h>
+
+using namespace Lunaris::JSON;
 
 // ...
-  const std::string test = 
-	"   {     \"test\"    :    10.58e96    ,  \"hex_vals\": [ 0x8886,   0xFFFF,12345,1.235e6  ,{\"a\":0,\"b\":null,\"c\":true,\"str\":\"this is a value\"}   ,9.9999E109 ],    "
-	"   \"opbjecx\":  {"
-	"  \"innit\"   :  \"yee\"  ,"
-	  "\"totally_null_and_condensed\":null"
-	"  }    } ";
+const char buf[] = R"(
+  {     "test"    :    10.58e96    ,  "hex_vals": [ 0x8886,
+          0xFFFF,12345,1.235e6  ,{"a":0,"b":null,"c":true,"str":"this is a value"}   ,9.9999E109 ],   
+    "opbjecx":  {
+        "innit"   :  "yee"  ,
+    "totally_null_and_condensed":null
+    }    }
+  )";
 
-  JSON j(test.c_str(), test.size());
+Json j{ std::make_shared<ParseableArrayWrapper>(buf, std::size(buf)) };
 // ...
 ```
-*What do you see? How much memory does it allocate for this? The answer: probably less than many (if not all) libraries around here. Why? Because values are stored as pointers. Everything in it is pointers. That's the only downside: DO NOT DEALLOCATE WHAT YOU'VE PASSED TO IT!*
 
-*So, how is its structure?*
+What do you see? How much memory does it allocate for this? The answer: probably less than many (if not all) libraries around here. Why? Because values are stored as pointers. Everything in it is a pointer. That's the only downside: DO NOT DEALLOCATE WHAT YOU'VE PASSED TO IT!
+
+### So, how is its structure?
 
 ```cpp
 struct ref {
@@ -35,43 +89,26 @@ struct ref {
 };
 ```
 
-*2 pointers, one offset, one 8 bit integer enum and a bool. Good enough? I think so. Better than saving an int, a double, something else and a copy of a string.*
+2 pointers, one offset, one 8 bit integer enum and a bool. Good enough? I think so. Better than saving an int, a double, something else and a copy of a string.
 
-*I'm doing this reference thing quick so you can use it too, but maybe in the future I can make this readme better.*
+I'm doing this reference thing quick so you can use it too, but maybe in the future I can make this readme better.
 
-*Examples of use: (assuming you've already JSON(string...) things up):*
+### Examples
 
 ```cpp
-void putchar_ch(char ch) { putchar(ch); } // make putchar putchar(char)
+// using the first example...
 // ... in a func:
-const size_t printed_chars = j.print(putchar_ch, 4, ' '); // putchar_ch is called, things are printed in cmd.
+const size_t printed_chars = j.print([](char c){putchar(c);}, 4, ' '); // putchar_ch is called, things are printed in cmd.
 char* buff = new char[printed_chars + 1] {'\0'};
 j.print_to(buff, 4, ' ');
 // buff has all the data formatted! Use it as you wish. Don't forget to:
 delete[] buff;
 ```
 ```cpp
+// using the first example...
 JSON c = j["hex_vals"][4]["str"];
 const char* c_str = c;
 std::cout << "Yooo: " << c_str << std::endl;
 std::cout << "Also works: " << (const char*)c << std::endl;
 // actually you can cast to a lot of types and it should work. If you want to be sure, use the get_*** ones.
-```
-```cpp
-// Wrap FILE* as an iterateable thing
-class FileJSON : public IterateableJSONRef {
-    FILE* m_fp;
-public:
-    FileJSON(FILE*&& fp) : IterateableJSONRef(), m_fp(fp) { fp = nullptr; }
-    ~FileJSON() { fclose(m_fp); }
-
-    char get(const size_t at) const { fseek(m_fp, static_cast<long>(at), SEEK_SET); int v = fgetc(m_fp); return v < 0 ? '\0' : static_cast<char>(v); }
-    void read(char* ptr, const size_t len, const size_t at) const { fseek(m_fp, static_cast<long>(at), SEEK_SET); fread(ptr, sizeof(char), len, m_fp); }
-    size_t max_off() const { return static_cast<size_t>(-1); } // assume infinite storage lmao
-};
-// ...
-FILE* fp;
-// open, fill, do things with fp, put JSON in it, then...
-JSON j(new FileJSON((FILE*&&)fp)); // I made FileJSON take the pointer and close by itself when done
-// use j as any json like before. It should have parsed from now on.
 ```
